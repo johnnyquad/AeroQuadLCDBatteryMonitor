@@ -291,10 +291,14 @@ void displayBarGraph(float batV)
   float percentage = 100*(batV / 2.5);
   int percenti = int (percentage); // cast float to int
   int numWholeBlocks = (percentage / 5);
+  if (numWholeBlocks > 20) // so we dont overwrite round back to line 0
+  {
+    numWholeBlocks = 20;
+  }
   int numPixels = (percenti % 5);
   int i;
   lcd.setCursor(0,3);
-  lcd.print("                    "); //print 20 spaces to clear line 2
+  lcd.print("                    "); //print 20 spaces to clear line 3
   
 
   lcd.setCursor(0,3);
@@ -305,8 +309,11 @@ void displayBarGraph(float batV)
   if(numPixels > 0)
   {
     pixelchars(numPixels); //change CGRAM for character 7 using array pixel
+    if (numWholeBlocks < 20) // so we dont overwrite round back to line 0
+    {
     lcd.setCursor(numWholeBlocks,3); //move cursor back to correct pos for bar
     lcd.print(7,BYTE); // only print chr 7 if needed
+    }
   }
 }
 String buf;
