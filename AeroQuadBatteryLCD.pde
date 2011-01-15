@@ -35,15 +35,47 @@ LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 #define BATGOOD 10.8
 #define BATWARNING 10.6
 #define BATCRITICAL 10.4
-int V1;
 
 // initialize the library with the numbers of the interface pins
 // LiquidCrystal(rs, enable, d4, d5, d6, d7) 
 
 
+byte disconnected;
 String buf;
 unsigned long previousTime;
 unsigned long retryTime;
+
+void displayDisconnected(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print("                   ");
+  lcd.setCursor(0,1);
+  lcd.print("                    ");
+  lcd.setCursor(0,2);
+  lcd.print("     DISCONECTED    ");
+  lcd.setCursor(0,3);
+  lcd.print("* Turn on AeroQuad *");
+}
+
+void retryConnection(void)
+{
+  Serial.println("S sent");
+  XBEE.print("S");
+  displayDataSent();
+}
+
+void displayDataSent(void)
+{
+  //Indicate data sent
+  lcd.setCursor(17,0);
+  lcd.print((char)0x7e);
+}
+
+void clearDataSent(void)
+{
+  lcd.setCursor(17,0);
+  lcd.print(" ");
+}
 
 void displayBarGraph(float batV)
 {
@@ -116,7 +148,7 @@ void processBuffer(void)
   //Clear buffer
   buf = "";
   float batV = atof(tmp);
-  Serial.println(batV);
+  //Serial.println(batV);
   displayFloat(batV);
   displayBarGraph(batV);
 }
@@ -143,52 +175,6 @@ void setup()
 
   XBEE.print("S"); // send get all flight data
 }
-
-void displayDisconnected(void)
-{
-  lcd.setCursor(0,0);
-  lcd.print("                   ");
-  lcd.setCursor(0,1);
-  lcd.print("                    ");
-  lcd.setCursor(0,2);
-  lcd.print("     DISCONECTED    ");
-  lcd.setCursor(0,3);
-  lcd.print("* Turn on AeroQuad *");
-}
-
-void retryConnection(void)
-{
-  Serial.println("S sent");
-  XBEE.print("S");
-  displayDataSent();
-}
-
-void displayDataSent(void)
-{
-  //Indicate data sent
-  lcd.setCursor(19,0);
-  lcd.print((char)0x7e);
-}
-
-void clearDataSent(void)
-{
-  lcd.setCursor(19,0);
-  lcd.print(" ");
-}
-
-void displayDataReceived(void)
-{
-  lcd.setCursor(0,0);
-  lcd.print((char)0x7e);
-}
-
-void clearDataReceived(void)
-{
-  lcd.setCursor(0,0);
-  lcd.print(" "); 
-}
-
-byte disconnected;
 
 void loop() 
 {
@@ -224,16 +210,12 @@ void loop()
 
     char s1Char = XBEE.read();
     buf  += s1Char;
-    Serial.println(buf);
+    //Serial.print(s1Char);
     if (s1Char == '\n') // wait till we get a full line from the quad
     {
+      //Serial.println(buf);
       processBuffer();
     } 
-    displayDataReceived();
-    clearDataSent();
-  }else
-  {
-    clearDataReceived();
   }
 }
 
