@@ -27,6 +27,10 @@ Line 2 shows status ie GOOD, WARNING or CRITICAL depending on you limits.
 #include <string.h>
 #include <stdlib.h>
 #include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
+#include "CustomChars.h"
+
 #define XBEE Serial1
 #define BATGOOD 10.8
 #define BATWARNING 10.6
@@ -35,236 +39,11 @@ int V1;
 
 // initialize the library with the numbers of the interface pins
 // LiquidCrystal(rs, enable, d4, d5, d6, d7) 
-LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 
 
-//BIG FONTS
-byte custchar[8][8] = {  // I'm only using the first 2 for BIGNUMS
- {
-   B11111,
-   B11111,
-   B11111,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000
- }, {
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B11111,
-   B11111,
-   B11111
- }, {
-   B11111,
-   B11111,
-   B11111,
-   B00000,
-   B00000,
-   B11111,
-   B11111,
-   B11111
- }, {
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B01110,
-   B01110,
-   B01110
- }, {
-   B00000,
-   B00000,
-   B00000,
-   B01110,
-   B01110,
-   B01110,
-   B00000,
-   B00000
- }, {
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000
- }, {
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000,
-   B00000
- }, {
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000
- }
-};
-
-
-//Pixel line chars for bargraph only 1 of these sub arrays is stuffed into CGRAM char 7
-byte pixel[4][8] = {
- {
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000,
-   B10000
- }, {
-   B11000,
-   B11000,
-   B11000,
-   B11000,
-   B11000,
-   B11000,
-   B11000,
-   B11000
- }, {
-   B11100,
-   B11100,
-   B11100,
-   B11100,
-   B11100,
-   B11100,
-   B11100,
-   B11100
- }, {
-   B11110,
-   B11110,
-   B11110,
-   B11110,
-   B11110,
-   B11110,
-   B11110,
-   B11110
- }
-};
-
-
-byte bignums[10][2][3] = {
- {
-   {255, 0, 255},
-   {255, 1, 255}
- },{
-   {0, 255, 254},
-   {1, 255, 1}
- },{
-   {2, 2, 255},
-   {255, 1, 1}
- },{
-   {0, 2, 255},
-   {1, 1, 255}
- },{
-   {255, 1, 255},
-   {254, 254, 255}
- },{
-   {255, 2, 2},
-   {1, 1, 255}
- },{
-   {255, 2, 2},
-   {255, 1, 255}
- },{
-   {0, 0, 255},
-   {254, 255, 254}
- },{
-   {255, 2, 255},
-   {255, 1, 255}
- },{
-   {255, 2, 255},
-   {254, 254, 255}
- }
-};
-
-void loadchars() 
-{
- lcd.command(64);
- for (int i = 0; i < 8; i++)
-   for (int j = 0; j < 8; j++)
-     lcd.write(custchar[i][j]);
- lcd.home();
-}
-
-void pixelchars(int numPixels)
-{
- lcd.command(120); //go to CGRAM address of start of char 7 
- for (int i = 0; i < 8; i++)
-     lcd.write(pixel[numPixels-1][i]);//change CGRAM data to have the correct number of pixels
-}
-
-void printbigchar(byte digit, byte col, byte row, byte symbol = 0)
-{
- if (digit > 9) return;
- for (int i = 0; i < 2; i++) {
-   lcd.setCursor(col, row + i);
-   for (int j = 0; j < 3; j++) {
-     lcd.write(bignums[digit][i][j]);
-   }
-   lcd.write(254);
- }
- if (symbol == 1) {
-   lcd.setCursor(col + 3, row + 1);
-   lcd.write(3);
- } else if (symbol == 2) {
-   lcd.setCursor(col + 3, row);
-   lcd.write(4);
-   lcd.setCursor(col + 3, row + 1);
-   lcd.write(4);
- }
- 
- lcd.setCursor(col + 4, row);
-}
-
-
-void setup() 
-{
-  Serial.begin(115200);
-  XBEE.begin(115200); // xbee port
-  // set up the LCD's number of rows and columns: 
-  lcd.begin(20, 4);
-  loadchars();
-  // Print a message to the LCD.
-  lcd.setCursor(0,0);
-  lcd.print("      AeroQuad      ");
-  lcd.setCursor(0,1);
-  lcd.print("  Battery Monitor   ");
-  lcd.setCursor(0,2);
-  lcd.print("JDH 12/01/2011 V 0.1");
-  lcd.setCursor(0,3);
-  lcd.print("* Turn on AeroQuad *");
-  delay(1800);
-  lcd.clear();
-  XBEE.print("S"); // send get all flight data
-}
-
-void displayFloat(float num) // Display the Battery volts in big digits on top 2 lines
-{
-  int t = (int)(num * 100.0);
-  printbigchar((t % 10),15,0);
-  t /=  10;
-  printbigchar((t % 10),11,0);
-  t /= 10;
-  printbigchar((t % 10),6,0,1);
-  t /= 10;
-  printbigchar((t % 10),2,0);
-  
-}
+String buf;
+unsigned long previousTime;
+unsigned long retryTime;
 
 void displayBarGraph(float batV)
 {
@@ -316,9 +95,8 @@ void displayBarGraph(float batV)
     }
   }
 }
-String buf;
 
-void processBuffer()
+void processBuffer(void)
 {
   int i;
   int index;
@@ -335,23 +113,127 @@ void processBuffer()
   //Serial.println(buf);
   char tmp[10];
   buf.toCharArray(tmp, 10);
+  //Clear buffer
+  buf = "";
   float batV = atof(tmp);
-  //Serial.println(x);
+  Serial.println(batV);
   displayFloat(batV);
   displayBarGraph(batV);
 }
 
 
+void setup() 
+{
+  Serial.begin(115200);
+  XBEE.begin(115200); // xbee port
+  // set up the LCD's number of rows and columns: 
+  lcd.begin(20, 4);
+  loadchars();
+  // Print a message to the LCD.
+  lcd.setCursor(0,0);
+  lcd.print("      AeroQuad      ");
+  lcd.setCursor(0,1);
+  lcd.print("  Battery Monitor   ");
+  lcd.setCursor(0,2);
+  lcd.print("JDH 12/01/2011 V 0.1");
+  lcd.setCursor(0,3);
+  lcd.print("* Turn on AeroQuad *");
+  delay(1800);
+  lcd.clear();
+
+  XBEE.print("S"); // send get all flight data
+}
+
+void displayDisconnected(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print("                   ");
+  lcd.setCursor(0,1);
+  lcd.print("                    ");
+  lcd.setCursor(0,2);
+  lcd.print("     DISCONECTED    ");
+  lcd.setCursor(0,3);
+  lcd.print("* Turn on AeroQuad *");
+}
+
+void retryConnection(void)
+{
+  Serial.println("S sent");
+  XBEE.print("S");
+  displayDataSent();
+}
+
+void displayDataSent(void)
+{
+  //Indicate data sent
+  lcd.setCursor(19,0);
+  lcd.print((char)0x7e);
+}
+
+void clearDataSent(void)
+{
+  lcd.setCursor(19,0);
+  lcd.print(" ");
+}
+
+void displayDataReceived(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print((char)0x7e);
+}
+
+void clearDataReceived(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print(" "); 
+}
+
+byte disconnected;
 
 void loop() 
 {
-  if (Serial1.available()) {
-    char s1Char = Serial1.read();
+  unsigned long currentTime = millis();
+  unsigned long delta = currentTime - previousTime;
+  //Serial.println(delta);
+
+  //We haven't received bytes in 1.5 seconds
+  if(delta > 1500)
+  {
+    //Only clear screen once
+    if(!disconnected)
+    {
+      displayDisconnected();
+      disconnected = true;
+    }
+    
+    //Retry every 500ms
+    if(currentTime - retryTime > 500)
+    { 
+      retryTime = currentTime;
+      retryConnection();
+    }else if(currentTime - retryTime > 250)
+    {
+      //Clear the send indicator before the next retry. Creates a nice pulse effect
+      clearDataSent();
+    }
+  }
+  
+  if (XBEE.available()) {
+    previousTime = currentTime;
+    disconnected = false;
+
+    char s1Char = XBEE.read();
     buf  += s1Char;
+    Serial.println(buf);
     if (s1Char == '\n') // wait till we get a full line from the quad
     {
       processBuffer();
     } 
+    displayDataReceived();
+    clearDataSent();
+  }else
+  {
+    clearDataReceived();
   }
 }
 
